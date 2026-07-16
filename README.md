@@ -25,14 +25,19 @@ Persistência no SQLite
 Publicação no Telegram
 ```
 
-## Tecnologias
+## Tecnologias e ferramentas
 
 - Python 3.12+
 - Requests
 - SQLite
 - python-dotenv
 - pytest
+- Ruff
 - Telegram Bot API
+
+## Qualidade e organização
+
+O código seguirá as convenções da PEP 8, com o Ruff responsável pela formatação e pela análise estática. A aplicação utilizará o `src layout`, e as dependências e configurações das ferramentas serão centralizadas no `pyproject.toml`.
 
 ## Status
 

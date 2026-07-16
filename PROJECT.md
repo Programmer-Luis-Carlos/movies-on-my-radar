@@ -787,7 +787,7 @@ O código não deverá copiar permanentemente todos os cabeçalhos `sec-ch-*` de
 
 Como os endpoints de localização foram retirados do MVP, o conjunto mais sensível de cabeçalhos não bloqueia a primeira entrega.
 
-Antes da atualização que implementar `refresh_locations.py`, deverá ser executado o experimento de redução de cabeçalhos descrito no `decisoes.md`.
+Antes da atualização que implementar `refresh_locations.py`, deverá ser executado o experimento de redução de cabeçalhos descrito no `DECISIONS.md`.
 
 ---
 
@@ -839,25 +839,34 @@ Checkpoints detalhados e retomada automática ficam fora do MVP.
 
 ## 24. Estrutura sugerida
 
+A aplicação utilizará o **`src layout`**, mantendo o código importável dentro de `src/movies_on_my_radar/` e os demais arquivos do repositório fora do pacote.
+
 ```text
 movies-on-my-radar/
-├── main.py
-├── config.py
-├── cinemark_client.py
-├── location_cache.py
-├── national_catalog.py
-├── eligibility.py
-├── database.py
-├── telegram_client.py
-├── message_formatter.py
-├── asset_selector.py
-├── models.py
-├── exceptions.py
-├── requirements.txt
-├── .env.example
-├── README.md
-├── PROJECT.md
-├── decisoes.md
+├── src/
+│   └── movies_on_my_radar/
+│       ├── __init__.py
+│       ├── __main__.py
+│       ├── config.py
+│       ├── cinemark_client.py
+│       ├── location_cache.py
+│       ├── national_catalog.py
+│       ├── eligibility.py
+│       ├── database.py
+│       ├── telegram_client.py
+│       ├── message_formatter.py
+│       ├── asset_selector.py
+│       ├── models.py
+│       └── exceptions.py
+├── tests/
+│   ├── test_id_normalization.py
+│   ├── test_movie_deduplication.py
+│   ├── test_eligibility_on_display.py
+│   ├── test_eligibility_coming_soon.py
+│   ├── test_pagination.py
+│   ├── test_persistence.py
+│   ├── test_message_formatter.py
+│   └── test_asset_selector.py
 ├── data/
 │   ├── .gitkeep
 │   └── cinemark-locations.json
@@ -868,22 +877,112 @@ movies-on-my-radar/
 │   ├── teste_em_breve.py
 │   ├── teste_detalhes.py
 │   └── teste_headers_minimos.py
-└── tests/
-    ├── test_id_normalization.py
-    ├── test_movie_deduplication.py
-    ├── test_eligibility_on_display.py
-    ├── test_eligibility_coming_soon.py
-    ├── test_pagination.py
-    ├── test_persistence.py
-    ├── test_message_formatter.py
-    └── test_asset_selector.py
+├── pyproject.toml
+├── .env.example
+├── .gitignore
+├── README.md
+├── PROJECT.md
+└── DECISIONS.md
 ```
 
+A estrutura em dois níveis:
+
+```text
+src/
+└── movies_on_my_radar/
+```
+
+não representa duas aplicações. `src/` separa o código-fonte dos arquivos da raiz, enquanto `movies_on_my_radar/` é o pacote que poderá ser importado e executado pelo Python.
+
+Essa escolha evita importações acidentais diretamente da raiz, faz os testes utilizarem o pacote instalado e permite que o projeto cresça sem espalhar módulos Python entre documentos, dados e arquivos de configuração.
+
+O MVP continuará usando módulos simples dentro do pacote. Subpastas adicionais como `clients/`, `services/` e `repositories/` somente serão criadas quando o volume de código justificar essa separação.
+
 `teste_headers_minimos.py` será necessário somente antes da atualização de descoberta automática de localizações.
+
+### 24.1 Convenções e qualidade do código
+
+O código seguirá as convenções da **PEP 8**, especialmente para:
+
+- nomes de módulos, funções, classes e variáveis;
+- organização dos imports;
+- indentação e espaços;
+- legibilidade e consistência.
+
+O **Ruff** será utilizado como formatador e analisador estático:
+
+```bash
+ruff format .
+ruff check .
+```
+
+Quando houver correções automáticas consideradas seguras:
+
+```bash
+ruff check --fix .
+```
+
+O Ruff poderá apontar imports não utilizados, nomes inexistentes, imports fora de ordem, nomes fora da convenção e outros problemas estáticos. Ele não substituirá o `pytest`, a revisão humana ou os testes das regras de negócio.
+
+### 24.2 `pyproject.toml`
+
+O `pyproject.toml` será a fonte principal para:
+
+- metadados do projeto;
+- versão mínima do Python;
+- dependências da aplicação;
+- dependências de desenvolvimento;
+- descoberta do pacote dentro de `src/`;
+- configuração do pytest;
+- configuração do Ruff.
+
+Configuração inicial:
+
+```toml
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "movies-on-my-radar"
+version = "0.1.0"
+description = "Backend em Python que acompanha filmes da Cinemark e publica avisos no Telegram."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "requests",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "N"]
+```
+
+O MVP não manterá simultaneamente uma segunda lista manual em `requirements.txt`. As dependências serão instaladas a partir do `pyproject.toml`, evitando duas fontes que possam ficar diferentes.
+
+Um arquivo de versões travadas poderá ser introduzido futuramente quando houver necessidade de reproduzir exatamente um ambiente de implantação.
 
 ---
 
 ## 25. Configuração
+
+As dependências e as configurações das ferramentas ficarão no `pyproject.toml`. Valores de execução e segredos continuarão no arquivo `.env`.
 
 Exemplo:
 
@@ -938,11 +1037,29 @@ Os testes de regra não deverão depender da internet.
 
 ## 27. Execução
 
+Preparação inicial do ambiente:
+
 ```bash
-python main.py
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
 ```
 
-O comando deverá:
+Execução da aplicação:
+
+```bash
+python -m movies_on_my_radar
+```
+
+Verificações de qualidade e testes:
+
+```bash
+ruff format .
+ruff check .
+pytest
+```
+
+O comando da aplicação deverá:
 
 1. carregar configuração;
 2. abrir o SQLite;
