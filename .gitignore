@@ -9,8 +9,9 @@ venv/
 __pycache__/
 *.py[cod]
 
-# Cache e relatórios de testes
+# Cache e relatórios de testes e ferramentas
 .pytest_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 
@@ -26,3 +27,9 @@ htmlcov/
 # Arquivos do sistema operacional
 .DS_Store
 Thumbs.db
+
+# Artefatos de empacotamento do Python
+*.egg-info/
+build/
+dist/
+
