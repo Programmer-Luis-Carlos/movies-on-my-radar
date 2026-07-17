@@ -1009,6 +1009,7 @@ requests
 sqlite3
 python-dotenv
 pytest
+ruff
 Telegram Bot API
 ```
 
@@ -1109,6 +1110,150 @@ Eles demonstram:
 ### Motivo
 
 A maior parte da lógica crítica pode ser testada com fixtures, sem depender da disponibilidade da Cinemark ou do Telegram.
+
+### Situação
+
+**Confirmada.**
+
+---
+
+## 43.1 Seguir as convenções da PEP 8
+
+### Decisão
+
+O código oficial do projeto seguirá as convenções da PEP 8 para nomes, imports, indentação, espaços e organização geral.
+
+### Motivo
+
+Adotar uma convenção reconhecida torna o código mais previsível para outras pessoas, reduz decisões visuais repetidas e demonstra familiaridade com o padrão mais comum do ecossistema Python.
+
+A PEP 8 orientará a escrita, mas não substituirá decisões de arquitetura, bons nomes ou separação correta de responsabilidades.
+
+### Situação
+
+**Confirmada.**
+
+---
+
+## 43.2 Usar Ruff como formatador e analisador estático
+
+### Decisão
+
+O Ruff fará parte das dependências de desenvolvimento e será usado com:
+
+```bash
+ruff format .
+ruff check .
+ruff check --fix .
+```
+
+A configuração inicial habilitará regras de erros importantes, Pyflakes, organização de imports e convenções de nomes:
+
+```toml
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "N"]
+```
+
+### Motivo
+
+O Ruff reúne formatação e análise estática em uma ferramenta rápida. Além de apontar problemas, ele pode corrigir automaticamente formatação, imports e outras ocorrências consideradas seguras.
+
+### Limites
+
+O Ruff não prova que as regras de negócio funcionam, não substitui o `pytest` e não decide sozinho se uma arquitetura ou um nome comunica bem a intenção.
+
+### Situação
+
+**Confirmada.**
+
+---
+
+## 43.3 Adotar o `src layout`
+
+### Alternativas consideradas
+
+- manter todos os módulos Python na raiz;
+- utilizar `src/movies_on_my_radar/`;
+- criar desde o início várias subpastas de camadas dentro do pacote.
+
+### Decisão
+
+O código oficial ficará em:
+
+```text
+src/
+└── movies_on_my_radar/
+```
+
+Testes, dados, experimentos, documentos e configurações permanecerão fora do pacote.
+
+### Motivo
+
+O `src layout` isola o código importável, reduz o risco de os testes importarem arquivos diretamente da raiz por acidente e aproxima o ambiente de desenvolvimento da forma como o pacote será realmente instalado.
+
+A pasta `src/` representa a área de código-fonte. A pasta `movies_on_my_radar/` representa o pacote Python. Essa estrutura em cascata não significa duplicação do projeto.
+
+### Controle de complexidade
+
+O pacote começará com módulos simples. Pastas como `clients/`, `services/` e `repositories/` somente serão adicionadas quando houver código suficiente para justificá-las.
+
+### Consequência
+
+O ambiente deverá instalar o projeto em modo editável:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+A aplicação poderá ser executada com:
+
+```bash
+python -m movies_on_my_radar
+```
+
+### Situação
+
+**Confirmada.**
+
+---
+
+## 43.4 Centralizar o projeto no `pyproject.toml`
+
+### Decisão
+
+O `pyproject.toml` será a fonte principal para:
+
+- metadados;
+- dependências da aplicação;
+- dependências de desenvolvimento;
+- sistema de build;
+- descoberta do pacote em `src/`;
+- configuração do pytest;
+- configuração do Ruff.
+
+O MVP não manterá também uma lista manual paralela em `requirements.txt`.
+
+### Motivo
+
+Um único arquivo reduz duplicação e permite preparar o ambiente de desenvolvimento com:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+O `pip` lerá o projeto e instalará as dependências declaradas sem que cada pacote precise ser instalado por um comando separado.
+
+### Limites
+
+O arquivo não descobre novas dependências automaticamente a partir dos imports. Quando uma biblioteca for adicionada ao código, ela também deverá ser declarada no `pyproject.toml`.
+
+Segredos e configurações de execução continuarão no `.env`. Documentação continuará nos arquivos Markdown.
+
+Um arquivo de lock ou de versões exatas poderá ser introduzido futuramente se a implantação exigir reprodução idêntica do ambiente.
 
 ### Situação
 
